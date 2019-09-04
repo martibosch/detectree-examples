@@ -1,0 +1,9 @@
+name: detectree
+channels:
+  - conda-forge
+dependencies:
+  - click
+  - geopandas
+  - rasterio
+  - python-slugify
+  - tqdm
