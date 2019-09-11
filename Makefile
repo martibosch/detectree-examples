@@ -1,4 +1,5 @@
-.PHONY: tiles
+.PHONY: tiles train_test_split download_lidar_shp response_tiles train_models \
+	predict_tiles execute_notebooks
 
 #################################################################################
 
@@ -43,7 +44,6 @@ ORTHOIMG_SHP := $(ORTHOIMG_SHP_BASEPATH).shp
 TILES_DIR = $(DATA_INTERIM_DIR)/tiles
 GET_TILES_TO_DOWNLOAD_PY = src/get_tiles_to_download.py
 MAKE_TILES_PY = src/make_tiles.py
-
 INTERSECTING_TILES_CSV := $(TILES_DIR)/intersecting_tiles.csv
 DOWNSCALED_TILES_CSV := $(TILES_DIR)/downscaled_tiles.csv
 
@@ -76,6 +76,103 @@ $(DOWNSCALED_TILES_CSV): $(INTERSECTING_TILES_CSV) $(ORTHOIMG_SHP) \
 	$(MAKE_TILES_PY) | $(TILES_DIR)
 	python $(MAKE_TILES_PY) $(INTERSECTING_TILES_CSV) $(TILES_DIR) $@
 tiles: $(DOWNSCALED_TILES_CSV)
+
+
+# train/test split
+
+## variables
+TRAIN_TEST_SPLIT_CSV := $(TILES_DIR)/split.csv
+NUM_TILE_CLUSTERS = 4
+
+## rules
+$(TRAIN_TEST_SPLIT_CSV): $(DOWNSCALED_TILES_CSV)
+	detectree train-test-split --img-dir $(TILES_DIR) \
+		--output-filepath $(TRAIN_TEST_SPLIT_CSV) \
+		--num-img-clusters $(NUM_TILE_CLUSTERS)
+train_test_split: $(TRAIN_TEST_SPLIT_CSV)
+
+
+# response tiles
+
+## variables
+### Zurich lidar https://www.geolion.zh.ch/geodatensatz/2606
+LIDAR_URI_BASE = https://maps.zh.ch/download/hoehen/2014/lidar/lidar2014
+LIDAR_SHP_EXTENSIONS = dbf prj qix shx
+LIDAR_SHP_DIR = $(DATA_RAW_DIR)/lidar
+LIDAR_SHP_BASEPATH := $(LIDAR_SHP_DIR)/lidar2014
+LIDAR_SHP_OTHERS := $(foreach EXT, $(LIDAR_SHP_EXTENSIONS), \
+	$(LIDAR_SHP_BASEPATH).$(EXT))
+LIDAR_SHP := $(LIDAR_SHP_BASEPATH).shp
+
+RESPONSE_TILES_DIR := $(DATA_INTERIM_DIR)/response_tiles
+MAKE_RESPONSE_TILES_PY = src/make_response_tiles.py
+RESPONSE_TILES_CSV := $(RESPONSE_TILES_DIR)/response_tiles.csv
+
+## rules
+$(LIDAR_SHP_DIR): | $(DATA_RAW_DIR)
+	mkdir $@
+define DOWNLOAD_LIDAR_SHP
+$(LIDAR_SHP_OTHER): | $(LIDAR_SHP_DIR)
+	wget $(LIDAR_URI_BASE)$$(suffix $$@) -O $$@
+	touch $$@
+endef
+$(foreach LIDAR_SHP_OTHER, $(LIDAR_SHP_OTHERS), \
+	$(eval $(DOWNLOAD_LIDAR_SHP)))
+$(LIDAR_SHP): $(LIDAR_SHP_OTHERS)
+	wget $(LIDAR_URI_BASE)$(suffix $@) -O $@
+	touch $@
+download_lidar_shp: $(LIDAR_SHP)
+
+$(RESPONSE_TILES_DIR): | $(DATA_INTERIM_DIR)
+	mkdir $@
+$(RESPONSE_TILES_CSV): $(TRAIN_TEST_SPLIT_CSV) $(LIDAR_SHP) \
+	$(MAKE_RESPONSE_TILES_PY) | $(RESPONSE_TILES_DIR)
+	python $(MAKE_RESPONSE_TILES_PY) $(TRAIN_TEST_SPLIT_CSV) $(LIDAR_SHP) \
+		$(RESPONSE_TILES_DIR) $@
+response_tiles: $(RESPONSE_TILES_CSV)
+
+
+# train models
+
+## variables
+MODELS_DIR = models
+MODEL_JOBLIB_FILEPATHS := $(foreach CLUSTER_LABEL, \
+	$(shell seq 0 $$(($(NUM_TILE_CLUSTERS)-1))), \
+		$(MODELS_DIR)/$(CLUSTER_LABEL).joblib)
+
+## rules
+$(MODELS_DIR):
+	mkdir $@
+
+$(MODELS_DIR)/%.joblib: $(RESPONSE_TILES_CSV) $(TRAIN_TEST_SPLIT_CSV) \
+	| $(MODELS_DIR)
+	detectree train-classifier --split-filepath $(TRAIN_TEST_SPLIT_CSV) \
+		--response-img-dir $(RESPONSE_TILES_DIR) --img-cluster $* \
+		--output-filepath $@
+train_models: $(MODEL_JOBLIB_FILEPATHS)
+
+
+# predict
+
+## variables
+predict_tiles: $(MODEL_JOBLIB_FILEPATHS) $(TRAIN_TEST_SPLIT_CSV) \
+	| $(DATA_PROCESSED_DIR)
+	detectree classify-imgs --clf-dir $(MODELS_DIR) \
+		--output-dir $(DATA_PROCESSED_DIR) $(TRAIN_TEST_SPLIT_CSV)
+
+
+# notebooks (for CI)
+
+NOTEBOOKS_DIR = notebooks
+OUTPUT_DIR := $(NOTEBOOKS_DIR)/output
+
+$(OUTPUT_DIR):
+	mkdir $(OUTPUT_DIR)
+
+execute_notebooks: | $(OUTPUT_DIR)
+	jupyter nbconvert --ExecutePreprocessor.timeout=5000 --to notebook \
+		--execute $(NOTEBOOKS_DIR)/*.ipynb --output-dir $(OUTPUT_DIR)
+	rm -rf $(OUTPUT_DIR)
 
 #################################################################################
 
