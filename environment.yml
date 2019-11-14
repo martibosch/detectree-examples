@@ -6,12 +6,11 @@ dependencies:
   - numpy=1.16.4
   - descartes
   - geopandas
-  - rasterio
-  - python-slugify
-  - tqdm
   - laspy
   - lastools
   - laszip
+  - python-slugify  
   - pip
+  - pip:
     - detectree
     - -e .
