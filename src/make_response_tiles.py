@@ -130,11 +130,15 @@ def main(split_csv_filepath, lidar_shp_filepath, response_dir, output_filepath,
     lidar_gdf = gpd.read_file(lidar_shp_filepath)
     response_tile_filepaths = []
     for tile_filepath in tile_filepaths:
-        response_tile_filepath = make_response_tile(tile_filepath,
-                                                    lidar_gdf,
-                                                    raw_dir,
-                                                    response_dir=response_dir,
-                                                    logger=logger)
+        response_tile_filepath = make_response_tile(
+            tile_filepath,
+            lidar_gdf,
+            raw_dir,
+            response_dir=response_dir,
+            output_tree_val=output_tree_val,
+            output_nodata=output_nodata,
+            high_veg_val=high_veg_val,
+            logger=logger)
         response_tile_filepaths.append(response_tile_filepath)
 
     # if not keep_raw:
