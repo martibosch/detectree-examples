@@ -1,11 +1,13 @@
-.PHONY: tiles train_test_split download_lidar_shp response_tiles train_models \
-	predict_tiles execute_notebooks
+.PHONY: tlies train_test_split download_lidar_shp response_tiles train_models \
+	predict_tiles aussersihl_tiles execute_notebooks
 
 #################################################################################
 
 # globals
 
 ## variables
+CODE_DIR = detectree_example
+
 DATA_DIR = data
 DATA_RAW_DIR := $(DATA_DIR)/raw
 DATA_INTERIM_DIR := $(DATA_DIR)/interim
@@ -22,16 +24,11 @@ $(foreach DATA_SUB_DIR, \
 	$(DATA_RAW_DIR) $(DATA_INTERIM_DIR) $(DATA_PROCESSED_DIR), \
 		$(eval $(MAKE_DATA_SUB_DIR)))
 
-# tiles
+# main workflow
+## tiles
 
-## variables
-### Swiss municipal boundaries https://bit.ly/2HewYJx
-GMB_URI = https://www.bfs.admin.ch/bfsstatic/dam/assets/5247306/master
-GMB_DIR := $(DATA_RAW_DIR)/gmb
-GMB_BASENAME = g1a18
-GMB_SHP := $(GMB_DIR)/$(GMB_BASENAME).shp
-
-### Zurich orthofoto https://www.geolion.zh.ch/geodatensatz/2831
+### variables
+#### Zurich orthofoto https://www.geolion.zh.ch/geodatensatz/2831
 ORTHOIMG_URI_BASE = \
 	https://maps.zh.ch/download/orthofoto/sommer/2014/rgb/jpeg/ortho_sommer14
 ORTHOIMG_SHP_EXTENSIONS = dbf prj shx
@@ -41,21 +38,17 @@ ORTHOIMG_SHP_OTHERS := $(foreach EXT, $(ORTHOIMG_SHP_EXTENSIONS), \
 	$(ORTHOIMG_SHP_BASEPATH).$(EXT))
 ORTHOIMG_SHP := $(ORTHOIMG_SHP_BASEPATH).shp
 
+#### Download the required tiles of the orthoimage
 TILES_DIR = $(DATA_INTERIM_DIR)/tiles
-GET_TILES_TO_DOWNLOAD_PY = src/get_tiles_to_download.py
-MAKE_TILES_PY = src/make_tiles.py
 INTERSECTING_TILES_CSV := $(TILES_DIR)/intersecting_tiles.csv
-DOWNSCALED_TILES_CSV := $(TILES_DIR)/downscaled_tiles.csv
+DOWNSAMPLED_TILES_CSV := $(TILES_DIR)/downsampled_tiles.csv
+NOMINATIM_QUERY = Zurich  # municipal boundaries
 
-## rules
-$(GMB_DIR): | $(DATA_RAW_DIR)
-	mkdir $@
-$(GMB_DIR)/%.zip: $(DOWNLOAD_URI_PY) | $(GMB_DIR)
-	wget $(GMB_URI) -O $@
-$(GMB_DIR)/%.shp: $(GMB_DIR)/%.zip
-	unzip -j $< 'ggg_2018-LV95/shp/$(GMB_BASENAME)*' -d $(GMB_DIR)
-	touch $@
+#### code
+GET_TILES_TO_DOWNLOAD_PY = $(CODE_DIR)/get_tiles_to_download.py
+MAKE_TILES_PY = $(CODE_DIR)/make_tiles.py
 
+### rules
 $(ORTHOIMG_SHP_DIR): | $(DATA_RAW_DIR)
 	mkdir $@
 define DOWNLOAD_ORTHOIMG_SHP
@@ -70,32 +63,31 @@ $(ORTHOIMG_SHP): $(ORTHOIMG_SHP_OTHERS)
 $(TILES_DIR): | $(DATA_INTERIM_DIR)
 	mkdir $@
 $(INTERSECTING_TILES_CSV): $(GET_TILES_TO_DOWNLOAD_PY) $(ORTHOIMG_SHP) \
-	$(GMB_SHP) | $(TILES_DIR)
-	python $(GET_TILES_TO_DOWNLOAD_PY) $(ORTHOIMG_SHP) $(GMB_SHP) $@
-$(DOWNSCALED_TILES_CSV): $(INTERSECTING_TILES_CSV) $(ORTHOIMG_SHP) \
-	$(MAKE_TILES_PY) | $(TILES_DIR)
-	python $(MAKE_TILES_PY) $(INTERSECTING_TILES_CSV) $(TILES_DIR) $@
-tiles: $(DOWNSCALED_TILES_CSV)
+	| $(TILES_DIR)
+	python $(GET_TILES_TO_DOWNLOAD_PY) $(ORTHOIMG_SHP) $(NOMINATIM_QUERY) $@
+$(DOWNSAMPLED_TILES_CSV): $(INTERSECTING_TILES_CSV) $(MAKE_TILES_PY) \
+	| $(TILES_DIR)
+	python $(MAKE_TILES_PY) $< $(TILES_DIR) $@
+tiles: $(DOWNSAMPLED_TILES_CSV)
 
+## train/test split
 
-# train/test split
-
-## variables
+### variables
 TRAIN_TEST_SPLIT_CSV := $(TILES_DIR)/split.csv
 NUM_TILE_CLUSTERS = 4
 
-## rules
-$(TRAIN_TEST_SPLIT_CSV): $(DOWNSCALED_TILES_CSV)
-	detectree train-test-split --img-dir $(TILES_DIR) \
+### rules
+$(TRAIN_TEST_SPLIT_CSV): $(MUNICIPAL_TILES_CSV)
+	detectree train-test-split --img-dir $(MUNICIPAL_TILES_DIR) \
 		--output-filepath $(TRAIN_TEST_SPLIT_CSV) \
 		--num-img-clusters $(NUM_TILE_CLUSTERS)
 train_test_split: $(TRAIN_TEST_SPLIT_CSV)
 
 
-# response tiles
+## response tiles
 
-## variables
-### Zurich lidar https://www.geolion.zh.ch/geodatensatz/2606
+### variables
+#### Zurich lidar https://www.geolion.zh.ch/geodatensatz/2606
 LIDAR_URI_BASE = https://maps.zh.ch/download/hoehen/2014/lidar/lidar2014
 LIDAR_SHP_EXTENSIONS = dbf prj qix shx
 LIDAR_SHP_DIR = $(DATA_RAW_DIR)/lidar
@@ -105,10 +97,10 @@ LIDAR_SHP_OTHERS := $(foreach EXT, $(LIDAR_SHP_EXTENSIONS), \
 LIDAR_SHP := $(LIDAR_SHP_BASEPATH).shp
 
 RESPONSE_TILES_DIR := $(DATA_INTERIM_DIR)/response_tiles
-MAKE_RESPONSE_TILES_PY = src/make_response_tiles.py
+MAKE_RESPONSE_TILES_PY = $(CODE_DIR)/make_response_tiles.py
 RESPONSE_TILES_CSV := $(RESPONSE_TILES_DIR)/response_tiles.csv
 
-## rules
+### rules
 $(LIDAR_SHP_DIR): | $(DATA_RAW_DIR)
 	mkdir $@
 define DOWNLOAD_LIDAR_SHP
@@ -132,15 +124,15 @@ $(RESPONSE_TILES_CSV): $(TRAIN_TEST_SPLIT_CSV) $(LIDAR_SHP) \
 response_tiles: $(RESPONSE_TILES_CSV)
 
 
-# train models
+## train models
 
-## variables
+### variables
 MODELS_DIR = models
 MODEL_JOBLIB_FILEPATHS := $(foreach CLUSTER_LABEL, \
 	$(shell seq 0 $$(($(NUM_TILE_CLUSTERS)-1))), \
 		$(MODELS_DIR)/$(CLUSTER_LABEL).joblib)
 
-## rules
+### rules
 $(MODELS_DIR):
 	mkdir $@
 
@@ -152,13 +144,37 @@ $(MODELS_DIR)/%.joblib: $(RESPONSE_TILES_CSV) $(TRAIN_TEST_SPLIT_CSV) \
 train_models: $(MODEL_JOBLIB_FILEPATHS)
 
 
-# predict
+## predict
 
-## variables
+### variables
 predict_tiles: $(MODEL_JOBLIB_FILEPATHS) $(TRAIN_TEST_SPLIT_CSV) \
 	| $(DATA_PROCESSED_DIR)
 	detectree classify-imgs --clf-dir $(MODELS_DIR) \
 		--output-dir $(DATA_PROCESSED_DIR) $(TRAIN_TEST_SPLIT_CSV)
+
+# Aussersihl
+## make a LULC raster for Zurich's Aussersihl
+### variables
+AUSSERSIHL_NOMINATIM_QUERY = "Zurich Aussersihl"
+AUSSERSIHL_TILES_DIR := $(DATA_INTERIM_DIR)/aussersihl_tiles
+AUSSERSIHL_INTERSECTING_TILES_CSV = $(AUSSERSIHL_TILES_DIR)/intersecting_tiles.csv
+AUSSERSIHL_TILES_CSV := $(AUSSERSIHL_TILES_DIR)/tiles.csv
+#### code
+MAKE_LULC_RASTER_PY := $(CODE_DIR)/make_lulc_raster.py
+
+### rules
+$(AUSSERSIHL_TILES_DIR): | $(DATA_INTERIM_DIR)
+	mkdir $@
+$(AUSSERSIHL_INTERSECTING_TILES_CSV): $(GET_TILES_TO_DOWNLOAD_PY) $(ORTHOIMG_SHP) \
+	| $(AUSSERSIHL_TILES_DIR)
+	python $(GET_TILES_TO_DOWNLOAD_PY) $(ORTHOIMG_SHP) \
+		$(AUSSERSIHL_NOMINATIM_QUERY) $@ --op intersects
+$(AUSSERSIHL_TILES_CSV): $(AUSSERSIHL_INTERSECTING_TILES_CSV) $(MAKE_TILES_PY) \
+	| $(AUSSERSIHL_TILES_DIR)
+	python $(MAKE_TILES_PY) $< $(AUSSERSIHL_TILES_DIR) $@ \
+		--nominatim-query $(AUSSERSIHL_NOMINATIM_QUERY) \
+		--exclude-nominatim-query "Lake Zurich" --keep-raw
+aussersihl_tiles: $(AUSSERSIHL_TILES_CSV)
 
 
 # notebooks (for CI)

@@ -6,11 +6,16 @@ from urllib import request
 
 import affine
 import click
+import geopandas as gpd
+import osmnx as ox
 import pandas as pd
 import rasterio as rio
+import tqdm
 from rasterio import windows
 from rasterio.enums import Resampling
-from tqdm import tqdm
+from shapely import geometry
+
+from detectree_example import settings
 
 BASE_URI = "https://maps.zh.ch/download/orthofoto/sommer/2014/rgb/jpeg/"
 RESAMPLE_FACTOR = 5
@@ -39,16 +44,6 @@ def _get_output_tile_filepath(tiles_dir, tile_basename, tile_i, tile_ext):
     return path.join(tiles_dir, f"{tile_basename}_{tile_i:02}{tile_ext}")
 
 
-def _get_tile_start(tile_filenames, tiles_dir):
-    for k, tile_filename in enumerate(tile_filenames):
-        tile_basename, tile_ext = path.splitext(tile_filename)
-        for i in range(NUM_TILE_SUBDIVISIONS**2):
-            if not path.exists(
-                    _get_output_tile_filepath(tiles_dir, tile_basename, i,
-                                              tile_ext)):
-                return k
-
-
 @click.command()
 @click.argument('intersecting_tiles_csv_filepath',
                 type=click.Path(exists=True))
@@ -57,8 +52,12 @@ def _get_tile_start(tile_filenames, tiles_dir):
 @click.option('--resample-factor', type=int, required=False)
 @click.option('--keep-raw', is_flag=True)
 @click.option('--raw-dir', type=click.Path(exists=True), required=False)
+@click.option('--nominatim-query', required=False)
+@click.option('--exclude-nominatim-query', required=False)
+@click.option('--crs', required=False)
 def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
-         resample_factor, keep_raw, raw_dir):
+         resample_factor, keep_raw, raw_dir, nominatim_query,
+         exclude_nominatim_query, crs):
     logger = logging.getLogger(__name__)
 
     if resample_factor is None:
@@ -72,23 +71,12 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
     tile_filenames = pd.read_csv(intersecting_tiles_csv_filepath,
                                  index_col=0,
                                  header=None).iloc[:, 0]
-
-    # cache mechanism to avoid re-processing tiles that have already been
-    # processed (e.g., after a download interruption)
-    tile_start = _get_tile_start(tile_filenames, tiles_dir)
-    if tile_start > 0:
-        logger.info(
-            "Skipping %d tiles because they have already been processed",
-            tile_start)
-
-    tiles_to_process = tile_filenames[tile_start:]
     output_tiles = []
-    logger.info("Downloading and downscaling %d tiles from %s",
-                len(tiles_to_process), BASE_URI)
-    for tile_filename in tqdm(tiles_to_process):
+    for tile_filename in tqdm.tqdm(tile_filenames):
         raw_tile_filepath = path.join(raw_dir, tile_filename)
         tile_basename, tile_ext = path.splitext(tile_filename)
-        request.urlretrieve(BASE_URI + tile_filename, raw_tile_filepath)
+        if not path.exists(raw_tile_filepath):
+            request.urlretrieve(BASE_URI + tile_filename, raw_tile_filepath)
         with rio.open(raw_tile_filepath) as src:
             interim_width = src.width // resample_factor
             interim_height = src.height // resample_factor
@@ -105,7 +93,8 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
                 profile = src.profile.copy()
                 profile.update(width=dst_window.width,
                                height=dst_window.height,
-                               transform=dst_transform)
+                               transform=dst_transform,
+                               crs=settings.CRS)
                 row_off, col_off = dst_window.row_off, dst_window.col_off
                 tile_filepath = _get_output_tile_filepath(
                     tiles_dir, tile_basename, i, tile_ext)
@@ -128,8 +117,50 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
     # if not keep_raw:
     #     shutil.rmtree(raw_dir)
 
+    if nominatim_query:
+        # get only the tiles that intersect the extent of the result of the
+        # nominatim query
+        logger.info("Querying Nominatim for boundaries for `%s`",
+                    nominatim_query)
+        gser = ox.gdf_from_place(nominatim_query)['geometry']
+        if crs:
+            pass
+        else:
+            crs = settings.CRS
+        geom = gser.to_crs(crs).iloc[0]
+        if exclude_nominatim_query:
+            logger.info("Querying Nominatim for boundaries for `%s`",
+                        exclude_nominatim_query)
+            exclude_geom = ox.gdf_from_place(
+                exclude_nominatim_query)['geometry'].to_crs(crs).iloc[0]
+            geom = geom.difference(exclude_geom)
+
+        def bbox_geom_from_tile(tile_filepath):
+            with rio.open(tile_filepath) as src:
+                return geometry.box(*src.bounds)
+
+        tiles_gdf = gpd.GeoDataFrame(output_tiles,
+                                     columns=['img_filepath'],
+                                     geometry=list(
+                                         map(bbox_geom_from_tile,
+                                             output_tiles)),
+                                     crs=crs)
+        # Stay tuned to https://github.com/geopandas/geopandas/issues/921
+        output_tiles_ser = gpd.sjoin(tiles_gdf,
+                                     gpd.GeoDataFrame(geometry=[geom]),
+                                     op='intersects',
+                                     how='inner')['img_filepath']
+
+        tiles_to_rm_ser = tiles_gdf['img_filepath'].loc[
+            ~tiles_gdf.index.isin(output_tiles_ser.index)]
+        for img_filepath in tiles_to_rm_ser:
+            os.remove(img_filepath)
+        logger.info(
+            "removed %d tiles that do not intersect with the extent of %s",
+            len(tiles_to_rm_ser), nominatim_query)
+
     # logger.info("Successfully dumped downscaled tiles to %s", tiles_dir)
-    pd.Series(output_tiles).to_csv(output_filepath, header=False)
+    output_tiles_ser.to_csv(output_filepath, header=False)
     logger.info("Dumped list of downscaled tiles to %s", output_filepath)
 
 

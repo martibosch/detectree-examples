@@ -3,14 +3,19 @@ channels:
   - conda-forge
 dependencies:
   - click
-  - numpy=1.16.4
+  - contextily
   - descartes
   - geopandas
   - laspy
   - lastools
   - laszip
+  - matplotlib
+  - numpy=1.16.4  
+  - osmnx
   - python-slugify  
   - pip
   - pip:
     - detectree
     - -e .
+  - rasterio
+  - shapely

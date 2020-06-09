@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='detectree-example',
-    packages=['src'],
+    packages=['detectree_example'],
     version='0.1.0',
     description='Example computational workflow using DetecTree',
     author='Martí Bosch',

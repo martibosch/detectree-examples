@@ -5,10 +5,10 @@ from urllib import request
 
 import click
 import geopandas as gpd
-import laspy as lp
 import numpy as np
 import pandas as pd
 import rasterio as rio
+from laspy import file as lp_file
 from rasterio import enums, features
 from scipy import ndimage as ndi
 from shapely import geometry
@@ -28,15 +28,14 @@ def get_from_cache_or_download(lidar_tile_filename,
                         local_tile_filepath)
         request.urlretrieve(lidar_uri, local_tile_filepath)
 
-    with lp.file.File(local_tile_filepath) as src:
+    with lp_file.File(local_tile_filepath, mode='r') as src:
         c = src.get_classification()
-        # the correction is needed probably because of float point encoding
-        x = np.array(src.get_x()) / 100
-        y = np.array(src.get_y()) / 100
-        cond = ((c == 4) ^
-                (c == 5)) & ((x >= bounds.left) & (x <= bounds.right) &
-                             (y >= bounds.bottom) & (y <= bounds.top))
-        return pd.DataFrame({'class_val': c[cond], 'x': x[cond], 'y': y[cond]})
+        x = src.x
+        y = src.y
+
+    cond = ((c == 4) ^ (c == 5)) & ((x >= bounds.left) & (x <= bounds.right) &
+                                    (y >= bounds.bottom) & (y <= bounds.top))
+    return pd.DataFrame({'class_val': c[cond], 'x': x[cond], 'y': y[cond]})
 
 
 def make_response_tile(tile_filepath,
@@ -52,6 +51,7 @@ def make_response_tile(tile_filepath,
         bounds = src.bounds
         lidar_tile_filenames = lidar_gdf[lidar_gdf['geometry'].intersects(
             geometry.box(*bounds))]['dateiname']
+
         dfs = []
         for lidar_tile_filename in lidar_tile_filenames:
             dfs.append(
@@ -113,10 +113,9 @@ def make_response_tiles(split_df,
 @click.option('--high-veg-val', type=int, default=5)
 @click.option('--output-tree-val', type=int, default=255)
 @click.option('--output-nodata', type=int, default=0)
-@click.option('--keep-raw', is_flag=True)
 @click.option('--raw-dir', type=click.Path(exists=True), required=False)
 def main(split_csv_filepath, lidar_shp_filepath, response_dir, output_filepath,
-         high_veg_val, output_tree_val, output_nodata, keep_raw, raw_dir):
+         high_veg_val, output_tree_val, output_nodata, raw_dir):
     logger = logging.getLogger(__name__)
 
     if raw_dir is None:

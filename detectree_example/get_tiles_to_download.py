@@ -2,29 +2,27 @@ import logging
 
 import click
 import geopandas as gpd
-from slugify import slugify
-
-AGGLOMERATION_SLUG = "zurich"
+import osmnx as ox
 
 
 @click.command()
 @click.argument('tiles_shp_filepath', type=click.Path(exists=True))
-@click.argument('gmb_filepath', type=click.Path(exists=True))
+@click.argument('nominatim_query')
 @click.argument('output_filepath', type=click.Path())
-def main(tiles_shp_filepath, gmb_filepath, output_filepath):
+@click.option('--op', default='within')
+def main(tiles_shp_filepath, nominatim_query, output_filepath, op):
     logger = logging.getLogger(__name__)
 
-    logger.info("Intersecting tiles with %s agglomeration extent",
-                AGGLOMERATION_SLUG)
     tiles_gdf = gpd.read_file(tiles_shp_filepath)
-    # get Zurich's municipal boundary
-    gdf = gpd.read_file(gmb_filepath)
-    municipal_geom = gdf[gdf['GMDNAME'].apply(slugify).str.contains(
-        AGGLOMERATION_SLUG)]['geometry'].unary_union
+    # get boundary
+    logger.info("Querying Nominatim for boundaries for `%s`", nominatim_query)
+    geom = ox.gdf_from_place(nominatim_query)['geometry'].to_crs(
+        tiles_gdf.crs).iloc[0]
+
     # get the filename of the tiles whose geometry is within with the
     # municipal boundaries
-    tile_filename_ser = tiles_gdf[tiles_gdf['geometry'].within(
-        municipal_geom)]['location']
+    op_method = getattr(tiles_gdf['geometry'], op)
+    tile_filename_ser = tiles_gdf[op_method(geom)]['location']
     logger.info("Found %d intersecting tiles", len(tile_filename_ser))
     tile_filename_ser.to_csv(output_filepath, header=False)
     logger.info("Dumped list of intersecting tiles to %s", output_filepath)
