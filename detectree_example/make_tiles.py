@@ -145,9 +145,9 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
                                          map(bbox_geom_from_tile,
                                              output_tiles)),
                                      crs=crs)
-        # Stay tuned to https://github.com/geopandas/geopandas/issues/921
         output_tiles_ser = gpd.sjoin(tiles_gdf,
-                                     gpd.GeoDataFrame(geometry=[geom]),
+                                     gpd.GeoDataFrame(geometry=[geom],
+                                                      crs=crs),
                                      op='intersects',
                                      how='inner')['img_filepath']
 
