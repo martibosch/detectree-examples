@@ -158,6 +158,9 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
         logger.info(
             "removed %d tiles that do not intersect with the extent of %s",
             len(tiles_to_rm_ser), nominatim_query)
+    else:
+        # just create a pandas series anyway to use the `to_csv` method below
+        output_tiles_ser = pd.Series(output_tiles)
 
     # logger.info("Successfully dumped downscaled tiles to %s", tiles_dir)
     output_tiles_ser.to_csv(output_filepath, header=False)
