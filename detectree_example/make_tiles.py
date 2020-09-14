@@ -101,9 +101,9 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
                 with rio.open(tile_filepath, 'w', **profile) as dst:
                     for channel in range(src.count):
                         dst.write(
-                            data[channel][row_off:row_off +
-                                          dst_window.height, col_off:col_off +
-                                          dst_window.width], channel + 1)
+                            data[channel][row_off:row_off + dst_window.height,
+                                          col_off:col_off + dst_window.width],
+                            channel + 1)
 
                 output_tiles.append(tile_filepath)
 
@@ -122,7 +122,7 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
         # nominatim query
         logger.info("Querying Nominatim for boundaries for `%s`",
                     nominatim_query)
-        gser = ox.gdf_from_place(nominatim_query)['geometry']
+        gser = ox.geocode_to_gdf(nominatim_query)['geometry']
         if crs:
             pass
         else:
@@ -131,7 +131,7 @@ def main(intersecting_tiles_csv_filepath, tiles_dir, output_filepath,
         if exclude_nominatim_query:
             logger.info("Querying Nominatim for boundaries for `%s`",
                         exclude_nominatim_query)
-            exclude_geom = ox.gdf_from_place(
+            exclude_geom = ox.geocode_to_gdf(
                 exclude_nominatim_query)['geometry'].to_crs(crs).iloc[0]
             geom = geom.difference(exclude_geom)
 

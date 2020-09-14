@@ -16,7 +16,7 @@ def main(tiles_shp_filepath, nominatim_query, output_filepath, op):
     tiles_gdf = gpd.read_file(tiles_shp_filepath)
     # get boundary
     logger.info("Querying Nominatim for boundaries for `%s`", nominatim_query)
-    geom = ox.gdf_from_place(nominatim_query)['geometry'].to_crs(
+    geom = ox.geocode_to_gdf(nominatim_query)['geometry'].to_crs(
         tiles_gdf.crs).iloc[0]
 
     # get the filename of the tiles whose geometry is within with the

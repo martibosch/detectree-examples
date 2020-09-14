@@ -11,7 +11,7 @@ dependencies:
   - laszip
   - matplotlib
   - numpy=1.16.4  
-  - osmnx
+  - osmnx>=0.15
   - python-slugify  
   - pip
   - pip:
