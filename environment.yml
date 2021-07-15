@@ -2,20 +2,23 @@ name: detectree
 channels:
   - conda-forge
 dependencies:
+  - affine
   - click
   - contextily
-  - descartes
+  - dask
+  - detectree
   - geopandas
-  - laspy
-  - lastools
-  - laszip
+  - jupyter
+  - laspy<2.0.0
   - matplotlib
-  - numpy=1.16.4  
-  - osmnx>=0.15
-  - python-slugify  
+  - numpy
+  - osmnx
+  - pandas
   - pip
   - pip:
-    - detectree
     - -e .
+  - python=3.7
   - rasterio
+  - scipy
   - shapely
+  - tqdm
