@@ -5,17 +5,17 @@ dependencies:
   - click
   - contextily
   - descartes
+  - detectree
   - geopandas
-  - laspy
+  - laspy<2.0.0
   - lastools
   - laszip
   - matplotlib
-  - numpy=1.16.4  
+  - numpy
   - osmnx>=0.15
-  - python-slugify  
+  - python-slugify
   - pip
   - pip:
-    - detectree
     - -e .
   - rasterio
   - shapely
