@@ -1,4 +1,4 @@
-.PHONY: tlies train_test_split download_lidar_shp response_tiles train_models \
+.PHONY: tiles train_test_split download_lidar_shp response_tiles train_models \
 	predict_tiles aussersihl_tiles execute_notebooks
 
 #################################################################################
