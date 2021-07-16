@@ -1,1 +1,1 @@
-CRS = 'epsg:2056'
+CRS = "epsg:2056"
