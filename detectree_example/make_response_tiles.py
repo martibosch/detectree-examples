@@ -5,9 +5,10 @@ from urllib import request
 
 import click
 import geopandas as gpd
+import laspy
+import numpy as np
 import pandas as pd
 import rasterio as rio
-from laspy import file as lp_file
 from rasterio import enums, features
 from scipy import ndimage as ndi
 from shapely import geometry
@@ -25,10 +26,10 @@ def get_from_cache_or_download(lidar_tile_filename, cache_dir, bounds, logger=No
             )
         request.urlretrieve(lidar_uri, local_tile_filepath)
 
-    with lp_file.File(local_tile_filepath, mode="r") as src:
-        c = src.get_classification()
-        x = src.x
-        y = src.y
+    las = laspy.read(local_tile_filepath)
+    c = np.array(las.classification)
+    x = np.array(las.x)
+    y = np.array(las.y)
 
     cond = ((c == 4) ^ (c == 5)) & (
         (x >= bounds.left)

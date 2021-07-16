@@ -7,9 +7,6 @@ dependencies:
   - descartes
   - detectree
   - geopandas
-  - laspy<2.0.0
-  - lastools
-  - laszip
   - matplotlib
   - numpy
   - osmnx>=0.15
@@ -17,5 +14,6 @@ dependencies:
   - pip
   - pip:
     - -e .
+    - laspy[laszip]>=2
   - rasterio
   - shapely
