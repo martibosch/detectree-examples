@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "detectree-examples"
+version = "0.1.0"
+description = "Example computational workflow using DetecTree"
+authors = [{ name = "Martí Bosch", email = "marti.bosch@epfl.ch" }]
+readme = "README.md"
+license = { text = "GPL-3.0-only" }
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.8"
+
+[project.urls]
+Repository = "https://github.com/martibosch/detectree-examplse"
+
+[tool.setuptools.packages.find]
+include = ["detectree_examples", "detectree_examples.*"]
+
+[tool.ruff]
+line-length = 88
+select = ["D", "E", "F", "I"]
+
+[tool.ruff.isort]
+known-first-party = ["detectree_examples"]
+
+[tool.nbqa.addopts]
+# ignore documentation errors in notebooks
+ruff = ["--ignore=D"]

@@ -6,7 +6,7 @@ from matplotlib import colors
 from rasterio import plot, transform, warp
 from shapely import geometry
 
-from detectree_example import settings
+from detectree_examples import settings
 
 WEB_MERCATOR_CRS = (
     "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0"

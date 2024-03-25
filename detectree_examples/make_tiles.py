@@ -15,7 +15,7 @@ from rasterio import windows
 from rasterio.enums import Resampling
 from shapely import geometry
 
-from detectree_example import settings
+from detectree_examples import settings
 
 BASE_URI = "https://maps.zh.ch/download/orthofoto/sommer/2014/rgb/jpeg/"
 RESAMPLE_FACTOR = 5

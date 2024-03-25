@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from dask import diagnostics
 
-from detectree_example import make_response_tiles
+from detectree_examples import make_response_tiles
 
 
 def _inner_loop(img_filepath, lidar_gdf, lidar_raw_dir, c, clf):

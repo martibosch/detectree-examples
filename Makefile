@@ -6,7 +6,7 @@
 # globals
 
 ## variables
-CODE_DIR = detectree_example
+CODE_DIR = detectree_examples
 
 DATA_DIR = data
 DATA_RAW_DIR := $(DATA_DIR)/raw
