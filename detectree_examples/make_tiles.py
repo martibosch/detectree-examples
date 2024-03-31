@@ -62,6 +62,7 @@ def main(
     exclude_nominatim_query,
     crs,
 ):
+    """Make tiles."""
     logger = logging.getLogger(__name__)
 
     if resample_factor is None:

@@ -40,8 +40,8 @@ ORTHOIMG_SHP := $(ORTHOIMG_SHP_BASEPATH).shp
 
 #### Download the required tiles of the orthoimage
 TILES_DIR = $(DATA_INTERIM_DIR)/tiles
-INTERSECTING_TILES_CSV := $(TILES_DIR)/intersecting_tiles.csv
-DOWNSAMPLED_TILES_CSV := $(TILES_DIR)/downsampled_tiles.csv
+INTERSECTING_TILES_CSV := $(TILES_DIR)/intersecting-tiles.csv
+DOWNSAMPLED_TILES_CSV := $(TILES_DIR)/downsampled-tiles.csv
 NOMINATIM_QUERY = Zurich  # municipal boundaries
 
 #### code
@@ -97,9 +97,9 @@ LIDAR_SHP_OTHERS := $(foreach EXT, $(LIDAR_SHP_EXTENSIONS), \
 	$(LIDAR_SHP_BASEPATH).$(EXT))
 LIDAR_SHP := $(LIDAR_SHP_BASEPATH).shp
 
-RESPONSE_TILES_DIR := $(DATA_INTERIM_DIR)/response_tiles
+RESPONSE_TILES_DIR := $(DATA_INTERIM_DIR)/response-tiles
 MAKE_RESPONSE_TILES_PY = $(CODE_DIR)/make_response_tiles.py
-RESPONSE_TILES_CSV := $(RESPONSE_TILES_DIR)/response_tiles.csv
+RESPONSE_TILES_CSV := $(RESPONSE_TILES_DIR)/response-tiles.csv
 
 ### rules
 $(LIDAR_SHP_DIR): | $(DATA_RAW_DIR)
@@ -157,8 +157,8 @@ predict_tiles: $(MODEL_JOBLIB_FILEPATHS) $(TRAIN_TEST_SPLIT_CSV) \
 ## make a LULC raster for Zurich's Aussersihl
 ### variables
 AUSSERSIHL_NOMINATIM_QUERY = "Zurich Aussersihl"
-AUSSERSIHL_TILES_DIR := $(DATA_INTERIM_DIR)/aussersihl_tiles
-AUSSERSIHL_INTERSECTING_TILES_CSV = $(AUSSERSIHL_TILES_DIR)/intersecting_tiles.csv
+AUSSERSIHL_TILES_DIR := $(DATA_INTERIM_DIR)/aussersihl-tiles
+AUSSERSIHL_INTERSECTING_TILES_CSV = $(AUSSERSIHL_TILES_DIR)/intersecting-tiles.csv
 AUSSERSIHL_TILES_CSV := $(AUSSERSIHL_TILES_DIR)/tiles.csv
 #### code
 MAKE_LULC_RASTER_PY := $(CODE_DIR)/make_lulc_raster.py

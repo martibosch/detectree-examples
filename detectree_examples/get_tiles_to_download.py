@@ -11,6 +11,7 @@ import osmnx as ox
 @click.argument("output_filepath", type=click.Path())
 @click.option("--op", default="within")
 def main(tiles_shp_filepath, nominatim_query, output_filepath, op):
+    """Get tiles to download."""
     logger = logging.getLogger(__name__)
 
     tiles_gdf = gpd.read_file(tiles_shp_filepath)

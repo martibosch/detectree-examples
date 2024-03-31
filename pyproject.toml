@@ -16,6 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.8"
 
@@ -27,9 +28,11 @@ include = ["detectree_examples", "detectree_examples.*"]
 
 [tool.ruff]
 line-length = 88
-select = ["D", "E", "F", "I"]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
 known-first-party = ["detectree_examples"]
 
 [tool.nbqa.addopts]

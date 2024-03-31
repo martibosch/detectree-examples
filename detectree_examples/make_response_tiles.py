@@ -17,6 +17,7 @@ BASE_URI = "https://maps.zh.ch/download/hoehen/2014/lidar/"
 
 
 def get_from_cache_or_download(lidar_tile_filename, cache_dir, bounds, logger=None):
+    """Get from cache or download."""
     local_tile_filepath = path.join(cache_dir, lidar_tile_filename)
     if not path.exists(local_tile_filepath):
         lidar_uri = BASE_URI + lidar_tile_filename
@@ -44,13 +45,22 @@ def make_response_tile(
     tile_filepath,
     lidar_gdf,
     raw_dir,
-    response_dir=None,
+    response_dir,
     output_dtype=rio.uint8,
     output_tree_val=255,
     output_nodata=0,
     high_veg_val=5,
     logger=None,
 ):
+    """Make response tile."""
+    # first check if the response tile has already been computed
+    response_tile_filepath = path.join(response_dir, path.basename(tile_filepath))
+    if path.exists(response_tile_filepath):
+        if logger is not None:
+            logger.info("Response tile already exists at %s", response_tile_filepath)
+        return response_tile_filepath
+
+    # if not, compute it
     with rio.open(tile_filepath) as src:
         bounds = src.bounds
         lidar_tile_filenames = lidar_gdf[
@@ -59,7 +69,11 @@ def make_response_tile(
 
         dfs = []
         for lidar_tile_filename in lidar_tile_filenames:
-            dfs.append(get_from_cache_or_download(lidar_tile_filename, raw_dir, bounds))
+            dfs.append(
+                get_from_cache_or_download(
+                    lidar_tile_filename, raw_dir, bounds, logger=logger
+                )
+            )
         df = pd.concat(dfs)
         gser = gpd.GeoSeries([geometry.Point(x, y) for x, y in zip(df["x"], df["y"])])
         arr = features.rasterize(
@@ -75,28 +89,25 @@ def make_response_tile(
             ndi.binary_opening(arr >= high_veg_val).astype(output_dtype)
             * output_tree_val
         )
-        if response_dir is not None:
-            meta = src.meta.copy()
+        meta = src.meta.copy()
 
-    if response_dir is not None:
-        meta.update(dtype=output_dtype, count=1, nodata=output_nodata)
-        response_tile_filepath = path.join(response_dir, path.basename(tile_filepath))
-        with rio.open(response_tile_filepath, "w", **meta) as dst:
-            dst.write(output_arr, 1)
-        if logger is not None:
-            logger.info("Dumped response tile to %s", response_tile_filepath)
-        return response_tile_filepath
-    else:
-        return output_arr
+    meta.update(dtype=output_dtype, count=1, nodata=output_nodata)
+
+    with rio.open(response_tile_filepath, "w", **meta) as dst:
+        dst.write(output_arr, 1)
+    if logger is not None:
+        logger.info("Dumped response tile to %s", response_tile_filepath)
+    return response_tile_filepath
 
 
-def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir=None, logger=None):
+def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, logger=None):
+    """Make response tiles."""
     tile_filepaths = split_df[split_df["train"]]["img_filepath"]
 
     response_tile_filepaths = []
     for tile_filepath in tile_filepaths:
         response_tile_filepath = make_response_tile(
-            tile_filepath, lidar_gdf, raw_dir, response_dir=response_dir, logger=logger
+            tile_filepath, lidar_gdf, raw_dir, response_dir, logger=logger
         )
         response_tile_filepaths.append(response_tile_filepath)
 
@@ -122,6 +133,7 @@ def main(
     output_nodata,
     raw_dir,
 ):
+    """Make response tiles."""
     logger = logging.getLogger(__name__)
 
     if raw_dir is None:
@@ -139,7 +151,7 @@ def main(
             tile_filepath,
             lidar_gdf,
             raw_dir,
-            response_dir=response_dir,
+            response_dir,
             output_tree_val=output_tree_val,
             output_nodata=output_nodata,
             high_veg_val=high_veg_val,

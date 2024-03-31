@@ -40,6 +40,7 @@ def _reproject_raster(
 def plot_canopy(
     canopy_arr, canopy_transform, canopy_crs=None, num_steps=10, **subplots_kws
 ):
+    """Plot canopy."""
     if canopy_crs is None:
         canopy_crs = settings.CRS
 
