@@ -32,7 +32,7 @@ Overview of the train/test split methods:
 
 ### Background
 
-- [Background](https://github.com/martibosch/detectree-examples/blob/main/notebooks/background.ipynb): overview of the methods used to detect tree/non-tree pixels, based on Yang et al. \[1\]
+- [Background](https://github.com/martibosch/detectree-examples/blob/main/notebooks/background.ipynb): overview of the methods used to detect tree/non-tree pixels, based on Yang et al. [1]
 
 ## Instructions to reproduce
 
