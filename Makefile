@@ -78,8 +78,8 @@ TRAIN_TEST_SPLIT_CSV := $(TILES_DIR)/split.csv
 NUM_TILE_CLUSTERS = 4
 
 ### rules
-$(TRAIN_TEST_SPLIT_CSV): $(MUNICIPAL_TILES_CSV)
-	detectree train-test-split --img-dir $(MUNICIPAL_TILES_DIR) \
+$(TRAIN_TEST_SPLIT_CSV): $(DOWNSAMPLED_TILES_CSV)
+	detectree train-test-split --img-dir $(TILES_DIR) \
 		--output-filepath $(TRAIN_TEST_SPLIT_CSV) \
 		--num-img-clusters $(NUM_TILE_CLUSTERS)
 train_test_split: $(TRAIN_TEST_SPLIT_CSV)
@@ -121,7 +121,7 @@ $(RESPONSE_TILES_DIR): | $(DATA_INTERIM_DIR)
 $(RESPONSE_TILES_CSV): $(TRAIN_TEST_SPLIT_CSV) $(LIDAR_SHP) \
 	$(MAKE_RESPONSE_TILES_PY) | $(RESPONSE_TILES_DIR)
 	python $(MAKE_RESPONSE_TILES_PY) $(TRAIN_TEST_SPLIT_CSV) $(LIDAR_SHP) \
-		$(RESPONSE_TILES_DIR) $@
+		$(TILES_DIR) $(RESPONSE_TILES_DIR) $@
 response_tiles: $(RESPONSE_TILES_CSV)
 
 
@@ -140,8 +140,8 @@ $(MODELS_DIR):
 $(MODELS_DIR)/%.joblib: $(RESPONSE_TILES_CSV) $(TRAIN_TEST_SPLIT_CSV) \
 	| $(MODELS_DIR)
 	detectree train-classifier --split-filepath $(TRAIN_TEST_SPLIT_CSV) \
-		--response-img-dir $(RESPONSE_TILES_DIR) --img-cluster $* \
-		--output-filepath $@
+		--img-dir $(TILES_DIR) --response-img-dir $(RESPONSE_TILES_DIR) \
+		--img-cluster $* --output-filepath $@
 train_models: $(MODEL_JOBLIB_FILEPATHS)
 
 
@@ -150,8 +150,8 @@ train_models: $(MODEL_JOBLIB_FILEPATHS)
 ### variables
 predict_tiles: $(MODEL_JOBLIB_FILEPATHS) $(TRAIN_TEST_SPLIT_CSV) \
 	| $(DATA_PROCESSED_DIR)
-	detectree classify-imgs --clf-dir $(MODELS_DIR) \
-		--output-dir $(DATA_PROCESSED_DIR) $(TRAIN_TEST_SPLIT_CSV)
+	detectree predict-imgs $(TRAIN_TEST_SPLIT_CSV) $(TILES_DIR) \
+		--clf-dir $(MODELS_DIR) --output-dir $(DATA_PROCESSED_DIR)
 
 # Aussersihl
 ## make a LULC raster for Zurich's Aussersihl
@@ -187,8 +187,9 @@ $(OUTPUT_DIR):
 	mkdir $(OUTPUT_DIR)
 
 execute_notebooks: | $(OUTPUT_DIR)
+	cd $(NOTEBOOKS_DIR)
 	jupyter nbconvert --ExecutePreprocessor.timeout=5000 --to notebook \
-		--execute $(NOTEBOOKS_DIR)/*.ipynb --output-dir $(OUTPUT_DIR)
+		--execute *.ipynb --output-dir $(notdir $(OUTPUT_DIR))
 	rm -rf $(OUTPUT_DIR)
 
 #################################################################################

@@ -101,9 +101,13 @@ def make_response_tile(
     return response_tile_filepath
 
 
-def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, *, logger=None):
+def make_response_tiles(
+    split_df, lidar_gdf, img_dir, raw_dir, response_dir, *, logger=None
+):
     """Make response tiles."""
-    tile_filepaths = split_df[split_df["train"]]["img_filepath"]
+    tile_filepaths = split_df[split_df["train"]]["img_filename"].apply(
+        lambda img_filename: path.join(img_dir, img_filename)
+    )
 
     response_tile_filepaths = []
     for tile_filepath in tile_filepaths:
@@ -118,6 +122,7 @@ def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, *, logger=No
 @click.command()
 @click.argument("split_csv_filepath", type=click.Path(exists=True))
 @click.argument("lidar_shp_filepath", type=click.Path(exists=True))
+@click.argument("img_dir", type=click.Path(exists=True))
 @click.argument("response_dir", type=click.Path(exists=True))
 @click.argument("output_filepath", type=click.Path())
 @click.option("--high-veg-val", type=int, default=5)
@@ -127,6 +132,7 @@ def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, *, logger=No
 def main(
     split_csv_filepath,
     lidar_shp_filepath,
+    img_dir,
     response_dir,
     output_filepath,
     high_veg_val,
@@ -143,7 +149,9 @@ def main(
             os.mkdir(raw_dir)
 
     split_df = pd.read_csv(split_csv_filepath)
-    tile_filepaths = split_df[split_df["train"]]["img_filepath"]
+    tile_filepaths = split_df[split_df["train"]]["img_filename"].apply(
+        lambda img_filename: path.join(img_dir, img_filename)
+    )
 
     lidar_gdf = gpd.read_file(lidar_shp_filepath)
     response_tile_filepaths = []

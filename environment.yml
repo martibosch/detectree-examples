@@ -5,11 +5,12 @@ dependencies:
   - click
   - contextily
   - descartes
-  - detectree=0.5.1
-  - geopandas
+  - detectree=0.6.0
+  - geopandas>=1
   - matplotlib
-  - numpy
-  - osmnx>=0.15
+  - numpy>=2
+  - osmnx>=1
+  - python=3.12
   - python-slugify
   - pip
   - pip:

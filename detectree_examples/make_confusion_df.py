@@ -1,4 +1,5 @@
 import random
+from os import path
 
 import dask
 import detectree as dtr
@@ -30,6 +31,7 @@ def make_confusion_df(
     *,
     split_df=None,
     img_filepaths=None,
+    img_dir=None,
     n=None,
     frac=0.05,
     clf=None,
@@ -47,7 +49,9 @@ def make_confusion_df(
             num_validation_tiles = int(frac * len(img_filepaths))
             test_filepaths = random.choices(img_filepaths, k=num_validation_tiles)
         else:
-            test_filepaths = _get_validation_df(split_df, n, frac)["img_filepath"]
+            test_filepaths = _get_validation_df(split_df, n, frac)[
+                "img_filename"
+            ].apply(lambda img_filename: path.join(img_dir, img_filename))
         for img_filepath in test_filepaths:
             truth_pred_lazy.append(
                 dask.delayed(_inner_loop)(
@@ -63,7 +67,9 @@ def make_confusion_df(
         validation_df = _get_validation_df(split_df, n, frac)
         for img_cluster, cluster_df in validation_df.groupby("img_cluster"):
             clf = clf_dict[img_cluster]
-            for img_filepath in cluster_df["img_filepath"]:
+            for img_filepath in cluster_df["img_filename"].apply(
+                lambda img_filename: path.join(img_dir, img_filename)
+            ):
                 truth_pred_lazy.append(
                     dask.delayed(_inner_loop)(
                         img_filepath, lidar_gdf, lidar_raw_dir, response_dir, c, clf
