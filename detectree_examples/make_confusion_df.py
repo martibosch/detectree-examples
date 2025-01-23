@@ -27,6 +27,7 @@ def make_confusion_df(
     lidar_gdf,
     lidar_raw_dir,
     response_dir,
+    *,
     split_df=None,
     img_filepaths=None,
     n=None,

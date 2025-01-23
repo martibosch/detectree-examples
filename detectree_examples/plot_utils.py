@@ -15,7 +15,13 @@ WEB_MERCATOR_CRS = (
 
 
 def _reproject_raster(
-    src_crs, src_arr, src_bounds, src_transform, dst_crs=WEB_MERCATOR_CRS, dst_nodata=0
+    src_crs,
+    src_arr,
+    src_bounds,
+    src_transform,
+    *,
+    dst_crs=WEB_MERCATOR_CRS,
+    dst_nodata=0,
 ):
     dst_transform, dst_width, dst_height = warp.calculate_default_transform(
         src_crs, dst_crs, src_arr.shape[1], src_arr.shape[0], *src_bounds
@@ -38,7 +44,7 @@ def _reproject_raster(
 
 
 def plot_canopy(
-    canopy_arr, canopy_transform, canopy_crs=None, num_steps=10, **subplots_kws
+    canopy_arr, canopy_transform, *, canopy_crs=None, num_steps=10, **subplots_kws
 ):
     """Plot canopy."""
     if canopy_crs is None:

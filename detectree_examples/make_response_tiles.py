@@ -16,7 +16,7 @@ from shapely import geometry
 BASE_URI = "https://maps.zh.ch/download/hoehen/2014/lidar/"
 
 
-def get_from_cache_or_download(lidar_tile_filename, cache_dir, bounds, logger=None):
+def get_from_cache_or_download(lidar_tile_filename, cache_dir, bounds, *, logger=None):
     """Get from cache or download."""
     local_tile_filepath = path.join(cache_dir, lidar_tile_filename)
     if not path.exists(local_tile_filepath):
@@ -46,6 +46,7 @@ def make_response_tile(
     lidar_gdf,
     raw_dir,
     response_dir,
+    *,
     output_dtype=rio.uint8,
     output_tree_val=255,
     output_nodata=0,
@@ -100,7 +101,7 @@ def make_response_tile(
     return response_tile_filepath
 
 
-def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, logger=None):
+def make_response_tiles(split_df, lidar_gdf, raw_dir, response_dir, *, logger=None):
     """Make response tiles."""
     tile_filepaths = split_df[split_df["train"]]["img_filepath"]
 
