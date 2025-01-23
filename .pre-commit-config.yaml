@@ -28,10 +28,11 @@ repos:
           - mdformat-gfm
           - mdformat-black
 
-  - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.31.0
+  - repo: https://github.com/pappasam/toml-sort
+    rev: v0.24.2
     hooks:
-      - id: check-github-workflows
+      - id: toml-sort-fix
+        args: ["--in-place"]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.19.1
@@ -44,17 +45,18 @@ repos:
       - id: nbstripout
         args: ["--keep-output"]
 
-  # use nbqa to format notebooks, then ruff to lint them
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.9.1
     hooks:
-      - id: nbqa-black
-      - id: nbqa-isort
-        args: ["--profile=black"]
+      - id: nbqa-ruff-check
+        args: ["--fix", "--ignore=D,I"]
+      - id: nbqa-ruff-format
+      - id: nbqa-ruff-check
+        args: ["--ignore=D,I"]
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.9.2
     hooks:
-      - id: ruff-format
       - id: ruff
-        args: ["--fix"]
+        args: [--fix]
+      - id: ruff-format
