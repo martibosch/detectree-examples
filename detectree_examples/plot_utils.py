@@ -1,3 +1,5 @@
+"""Plotting utils."""
+
 import contextily as ctx
 import geopandas as gpd
 import matplotlib.pyplot as plt

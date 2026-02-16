@@ -20,14 +20,12 @@ The notebooks are stored in the [`notebooks` folder](https://github.com/martibos
 
 ### Training
 
-Example use case:
-
 - [Aussersihl canopy](https://github.com/martibosch/detectree-examples/blob/main/notebooks/aussersihl-canopy.ipynb): application of DetecTree to compute a tree canopy map for the Aussersihl district in Zurich.
+- [Cluster-I](https://github.com/martibosch/detectree-examples/blob/main/notebooks/cluster-I.ipynb): train/test split of image tiles based on *k*-means clustering of image descriptors to enhance the variety of scenes represented in the training tiles.
 
-Overview of the train/test split methods:
+**Out-of-date notebooks** on other train/test split methods:
 
 - [Baseline](https://github.com/martibosch/detectree-examples/blob/main/notebooks/baseline.ipynb): train/test split of image tiles based on uniform sampling.
-- [Cluster-I](https://github.com/martibosch/detectree-examples/blob/main/notebooks/cluster-I.ipynb): train/test split of image tiles based on *k*-means clustering of image descriptors to enhance the variety of scenes represented in the training tiles.
 - [Cluster-II](https://github.com/martibosch/detectree-examples/blob/main/notebooks/cluster-II.ipynb): train/test split of image tiles based on a two-level *k*-means clustering, using a **separate classifier** for each first-level cluster of tiles. The second-level clustering enhances the variety of scenes represented in the training tiles of each separate classifier.
 
 ### Background
@@ -36,41 +34,12 @@ Overview of the train/test split methods:
 
 ## Instructions to reproduce
 
-The materials of this repository make use of a set of external libraries, which are listed in the [environment.yml](https://github.com/martibosch/detectree-examples/blob/main/environment.yml) file. The easiest way to install such dependencies is by means of a [conda](https://docs.conda.io/en/latest/) environment:
-
-1. Clone the repository and change directory to the repository's root:
-
-```bash
-git clone https://github.com/martibosch/detectree-examples
-cd detectree-examples
-```
-
-2. Create the environment (this requires conda/mamba) and activate it:
-
-```bash
-# you can also use mamba
-conda env create -f environment.yml
-# the above command creates a conda environment named `detectree`
-conda activate detectree
-```
-
-3. Register the IPython kernel of the `detectree` environment
-
-```bash
-python -m ipykernel install --user --name detectree --display-name "Python (detectree)"
-```
-
-You might now run a jupyter server (e.g., running the command `jupyter notebook`) and execute the notebooks of this repository.
-
-## Makefile workflow
-
-Some of the tasks of DetecTree's computational flow (e.g., computing image descriptors, training the classifiers...) can be computationally expensive. While Jupyter notebooks are a great medium to overview DetecTree's features, they are less convenient when it comes to managing complex computational workflows. In view of such shortcoming, this repository also includes a [Makefile](https://github.com/martibosch/detectree-examples/blob/main/Makefile) implementation of the computational workflow, which ensures the correct execution of the workflow and caches expensive intermediate results so that the workflow can be efficiently resumed at any point.
+This setup uses [pixi](https://github.com/prefix-dev/pixi) to manage dependencies. With pixi installed in your system, you can simply run `pixi run python` and you will get a Python shell session with all the dependencies available. In order to run notebooks within this environment, you can use [pixi-kernel](https://github.com/renan-r-santos/pixi-kernel).
 
 ## Acknowledgments
 
-- With the support of the École Polytechnique Fédérale de Lausanne (EPFL)
-- The [aerial imagery](https://www.geolion.zh.ch/geodatensatz/2831) and [LIDAR](https://www.geolion.zh.ch/geodatensatz/show?gdsid=343) datasets used in this repository are provided by the [Office for spatial development (Amt für Raumentwicklung)](https://are.zh.ch/) of the canton of Zurich.
-- Project based on the [cookiecutter data science project template](https://drivendata.github.io/cookiecutter-data-science). #cookiecutterdatascience
+- The [aerial imagery](https://www.swisstopo.admin.ch/en/orthoimage-swissimage-10) and [LIDAR](https://www.swisstopo.admin.ch/en/height-model-swisssurface3d) datasets used in this repository are provided by the [Federal Office of Topography swisstopo](https://www.swisstopo.admin.ch/en).
+- Based on the [cookiecutter-data-snake :snake:](https://github.com/martibosch/cookiecutter-data-snake) template for reproducible data science.
 
 ## References
 
