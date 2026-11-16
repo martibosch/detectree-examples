@@ -6,7 +6,7 @@ build-backend = "uv_build"
 name = "detectree-examples"
 version = "0.1.0"
 description = "Example computational workflow using DetecTree"
-authors = [{name = "Martí Bosch", email = "marti.bosch@epfl.ch"}]
+authors = [{ name = "Martí Bosch", email = "marti.bosch@epfl.ch" }]
 readme = "README.md"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -47,8 +47,8 @@ click = "*"
 pyqt = "*"
 
 [tool.pixi.pypi-dependencies]
-detectree = {version = ">=0.9.0,<0.10"}
-detectree_examples = {path = ".", editable = true}
+detectree = { version = ">=0.9.0,<0.10" }
+detectree_examples = { path = ".", editable = true }
 
 [tool.pixi.workspace]
 channels = ["conda-forge", "bioconda"]
